@@ -17,26 +17,13 @@
 <input name="VS_INPUT">
 	<field name="POSITION" lname="position" type="vec2" />
 	<field name="TEXCOORD0" lname="texcoord" type="vec2" />
-</input>
-<input name="VS_INPUT_COLOR">
-	<field name="POSITION" lname="position" type="vec2" />
-	<field name="TEXCOORD0" lname="texcoord" type="vec2" />
-	<field name="COLOR" lname="color" type="vec4" />
-</input>
-<input name="VS_INPUT_POSITION4">
-	<field name="POSITION" lname="position" type="vec4" />
-	<field name="TEXCOORD0" lname="texcoord" type="vec2" />
 	<field name="COLOR" lname="color" type="vec4" />
 </input>
 
 <output name="VS_OUTPUT">
 	<field name="POSITION" lname="position" type="vec4" prec="highp" />
 	<field name="TEXCOORD0" lname="texcoord" type="vec2" prec="mediump" />
-</output>
-<output name="VS_OUTPUT_COLOR">
-	<field name="POSITION" lname="position" type="vec4" prec="highp" />
-	<field name="TEXCOORD0" lname="texcoord" type="vec2" prec="mediump" />
-	<field name="COLOR" lname="color" type="vec4" prec="lowp" />
+	<field name="COLOR" lname="color" type="vec4" />
 </output>
 
 <code><![CDATA[
@@ -63,44 +50,7 @@ VS_OUTPUT vs(VS_INPUT vIn)
 
 	vOut.texcoord = vIn.texcoord;
 	vOut.position = vec4(vIn.position,0,1) * WorldViewProjection;
-
-	return vOut;
-}
-
-//--------------------------------------------------------------------------------------------------
-// 2D elements in screen-space [0,SCREENW/H] with position.xy and texcoord.xy
-//--------------------------------------------------------------------------------------------------
-VS_OUTPUT_COLOR vs_screenspace(VS_INPUT_COLOR vIn)
-{
-	VS_OUTPUT_COLOR	vOut;
-
-	vOut.texcoord = vIn.texcoord;
 	vOut.color = vIn.color;
-
-	//
-	// Compute clip space position from:
-	// [0,SCREEN_SIZE.X] to [-1,+1] and [0,SCREEN_SIZE.Y] to [+1,-1] with SCREEN_SIZE.zw = 1.0f / SCREEN_SIZE.xy
-	vOut.position.x = -1.0 + vIn.position.x * 2.0 * SCREEN_SIZE.z;
-	vOut.position.y = +1.0 - vIn.position.y * 2.0 * SCREEN_SIZE.w;
-	vOut.position.z = 0.0;
-	vOut.position.w = 1.0;
-
-	return vOut;
-}
-
-//--------------------------------------------------------------------------------------------------
-// Vertex shader code
-//--------------------------------------------------------------------------------------------------
-VS_OUTPUT_COLOR vs_position4(VS_INPUT_POSITION4 vIn)
-{
-	VS_OUTPUT_COLOR	vOut;
-	
-	vOut.texcoord = vIn.texcoord;
-	vOut.color = vIn.color;
-
-	//
-	// Compute projected position
-	vOut.position = vIn.position * WorldViewProjection;
 
 	return vOut;
 }
@@ -111,85 +61,7 @@ VS_OUTPUT_COLOR vs_position4(VS_INPUT_POSITION4 vIn)
 lowp vec4 ps(VS_OUTPUT vIn)
 {
 	lowp vec4 textureColor = texture2D(TextureMapSampler, vIn.texcoord);
-	return vec4(1.0, 1.0, 1.0, textureColor.a) * DiffuseColor;
-}
-
-void clip(lowp float x)
-{
-	if (x < 0.0)
-		discard;
-}
-
-lowp vec4 GetTiledPixel(mediump vec2 uv)
-{
-	mediump vec4	tile = texture2D(TextureMapSampler, uv).bgra;			// load the tilemap value
-	mediump vec2	tileIndex = (tile.xz * 255.0) + (tile.yw * 255.0 * 256.0);	// convert to integer tile X,Y
-	tileIndex = floor(tileIndex + 0.5);							// *exact* integer, please!
-	mediump vec2	tileSubUv = uv * TextureMapSize;				// convert UV to pixel index within tilemap; each pixel is a single tile
-	tileIndex += fract(tileSubUv);							// the fractional part is added to the tile index to address the correct pixel in the tile
-	tileIndex *= 8.0;								// now pixel index in the tileset
-	tileIndex /= TileSetSize;							// now UV in the tileset
-	return texture2D(TileSetSampler, tileIndex);
-}
-
-lowp vec4 ps_tile(VS_OUTPUT vIn)
-{
-	lowp vec4	textureColor = GetTiledPixel(vIn.texcoord);
-	return textureColor * DiffuseColor;
-}
-
-lowp vec4 psSC(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4 textureColor = texture2D(TextureMapSampler, vIn.texcoord);
-	return textureColor * vIn.color;
-}
-
-lowp vec4 psSC_tile(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4	textureColor = GetTiledPixel(vIn.texcoord);
-	return textureColor * vIn.color;
-}
-
-lowp vec4 ps3(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4 textureColor = texture2D(TextureMapSampler, vIn.texcoord);
-	return textureColor * vIn.color * DiffuseColor;
-}
-
-lowp vec4 ps3_tile(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4 textureColor = GetTiledPixel(vIn.texcoord);
-	return textureColor * vIn.color * DiffuseColor;
-}
-
-lowp vec4 psPickBuffer(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4 textureColor = texture2D(TextureMapSampler, vIn.texcoord);
-	clip(textureColor.a - 0.5);
-	return DiffuseColor;
-}
-
-lowp vec4 psPickBuffer_tile(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4 textureColor = GetTiledPixel(vIn.texcoord);
-	clip(textureColor.a - 0.5);
-	return DiffuseColor;
-}
-
-lowp vec4 psFrozen(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4 textureColor = texture2D(TextureMapSampler, vIn.texcoord);
-	lowp float grayscale = 0.30 * textureColor.r + 0.59 * textureColor.g + 0.11 * textureColor.b;
-	grayscale = 0.2 + grayscale * 0.2;
-	return vec4(grayscale, grayscale, grayscale, textureColor.a);
-}
-
-lowp vec4 psFrozen_tile(VS_OUTPUT_COLOR vIn)
-{
-	lowp vec4 textureColor = GetTiledPixel(vIn.texcoord);
-	lowp float grayscale = 0.30 * textureColor.r + 0.59 * textureColor.g + 0.11 * textureColor.b;
-	grayscale = 0.2 + grayscale * 0.2;
-	return vec4(grayscale, grayscale, grayscale, textureColor.a);
+	return vec4(1.0, 1.0, 1.0, textureColor.a) * vIn.color * DiffuseColor;
 }
 
 ]]></code>

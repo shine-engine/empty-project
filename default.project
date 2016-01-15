@@ -13,15 +13,17 @@
         <scene_explorer scene_explorer_add_folder="Root">
             <scene_explorer_item scene_explorer_item_name="Root" scene_explorer_item_text="Root" scene_explorer_item_type="0" scene_explorer_item_expanded="false" scene_explorer_item_parent="NULL"/>
         </scene_explorer>
-        <recent_file_list max_recent_file="5">
-        </recent_file_list>
+        <recent_file_list max_recent_file="5"/>
     </editor_settings>
-    <plugins/>
     <project_settings>
         <name value="default"/>
+        <directory value="W:/github/empty-project"/>
+        <resource_path value=""/>
         <version major="0" minor="1"/>
         <icon path="icon.png"/>
         <splashscreen path="splashscreen.png"/>
-        <orientation landscape="true" portrait="true"/>
+        <orientation landscape="false" portrait="true"/>
+        <languages language="1"/>
     </project_settings>
+    <extensions/>
 </project>
